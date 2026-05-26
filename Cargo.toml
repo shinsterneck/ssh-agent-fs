@@ -7,6 +7,7 @@ description = "Read-only FUSE filesystem exposing SSH agent public keys as predi
 readme = "README.md"
 keywords = ["ssh", "fuse", "ssh-agent", "filesystem"]
 categories = ["filesystem", "command-line-utilities"]
+repository = "https://github.com/shinsterneck/ssh-agent-fs"
 
 [dependencies]
 fuser = "0.14"
