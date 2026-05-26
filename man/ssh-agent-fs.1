@@ -1,0 +1,197 @@
+.\" Man page for ssh-agent-fs
+.\" View with:  man ./man/ssh-agent-fs.1
+.\" Install to: /usr/local/share/man/man1/ssh-agent-fs.1
+.TH SSH\-AGENT\-FS 1 "May 2026" "ssh\-agent\-fs 0.1.0" "User Commands"
+
+.SH NAME
+ssh\-agent\-fs \- expose SSH agent identities as files via FUSE
+
+.SH SYNOPSIS
+.B ssh\-agent\-fs
+.RI [ MOUNTPOINT ]
+.br
+.B ssh\-agent\-fs
+.BR \-h | \-\-help
+
+.SH DESCRIPTION
+.B ssh\-agent\-fs
+mounts a read\-only FUSE filesystem that exposes the public keys held by a
+running
+.BR ssh\-agent (1)
+as ordinary files - one
+.I .pub
+file per identity. This lets you reference agent\-held keys by stable,
+predictable paths in
+.IR ~/.ssh/config ,
+typically via
+.B IdentityFile
+together with
+.BR IdentitiesOnly .
+.PP
+Each file in the mount corresponds to one identity loaded into the agent.
+The filename is derived from the identity's comment, with a
+.I .pub
+suffix; file contents are the public key in OpenSSH single\-line format.
+OpenSSH certificates loaded into the agent (see
+.BR ssh\-add (1))
+appear alongside regular keys, with their full certificate string as
+content.
+.PP
+The filesystem is mounted read\-only; every file has mode
+.BR 0444 .
+It is automatically unmounted when the process exits, and can be
+unmounted manually with
+.BR fusermount (1).
+
+.SH OPTIONS
+.TP
+.I MOUNTPOINT
+Directory at which to mount the filesystem. If it does not exist it is
+created with mode
+.BR 0700 .
+If it exists but is owned by another user, the process refuses to start
+- this guards against a hostile user pre\-creating a writable directory
+at a path that would otherwise be mounted onto.
+.TP
+.BR \-h ", " \-\-help
+Print a short usage summary and exit.
+
+.SH DEFAULT MOUNTPOINT
+When
+.I MOUNTPOINT
+is omitted,
+.B ssh\-agent\-fs
+chooses a per\-user runtime directory by trying these locations in order
+and using the first one that is usable:
+.IP 1. 4
+.IB $XDG_RUNTIME_DIR /ssh\-agent\-fs/
+.IP 2. 4
+.BI /run/user/ $UID /ssh\-agent\-fs/
+.IP 3. 4
+.IB $TMPDIR /ssh\-agent\-fs\- $UID /
+.IP 4. 4
+.BI /tmp/ssh\-agent\-fs\- $UID /
+.PP
+The first two are tmpfs locations managed by systemd (on Linux); the
+third covers macOS, which provides each user a private
+.BR $TMPDIR .
+The chosen path is printed to standard error on startup, for example:
+.PP
+.RS 4
+.EX
+ssh\-agent\-fs: mounting at /run/user/1000/ssh\-agent\-fs
+.EE
+.RE
+
+.SH ENVIRONMENT
+.TP
+.B SSH_AUTH_SOCK
+.B Required.
+Path to the Unix\-domain socket of the running SSH agent. If unset,
+.B ssh\-agent\-fs
+exits with an error.
+.TP
+.B XDG_RUNTIME_DIR
+Consulted when selecting a default mountpoint; see
+.BR "DEFAULT MOUNTPOINT" .
+.TP
+.B TMPDIR
+Consulted as a fallback when selecting a default mountpoint.
+
+.SH FILES
+.TP
+.IB MOUNTPOINT / comment .pub
+One file per identity held by the agent. The
+.I comment
+portion is the agent's comment for that identity - typically the value
+passed to
+.B "ssh\-keygen \-C"
+when the key was generated, or the path of the file from which the key
+was loaded.
+
+.SH EXAMPLES
+.PP
+Mount at the default location and inspect the identities the agent holds:
+.PP
+.RS 4
+.EX
+$ ssh\-agent\-fs &
+ssh\-agent\-fs: mounting at /run/user/1000/ssh\-agent\-fs
+
+$ ls \-la /run/user/$UID/ssh\-agent\-fs
+\-r\-\-r\-\-r\-\- 1 you you 102 ... work\-laptop.pub
+\-r\-\-r\-\-r\-\- 1 you you  98 ... personal.pub
+
+$ cat /run/user/$UID/ssh\-agent\-fs/work\-laptop.pub
+ssh\-ed25519 AAAAC3Nz... work\-laptop
+.EE
+.RE
+.PP
+Pin a specific identity for a host in
+.IR ~/.ssh/config :
+.PP
+.RS 4
+.EX
+Host github.com
+    IdentityFile /run/user/1000/ssh\-agent\-fs/work\-laptop.pub
+    IdentitiesOnly yes
+.EE
+.RE
+.PP
+Mount at an explicit path:
+.PP
+.RS 4
+.EX
+$ ssh\-agent\-fs ~/agent\-keys
+.EE
+.RE
+.PP
+Unmount:
+.PP
+.RS 4
+.EX
+$ fusermount \-u /run/user/$UID/ssh\-agent\-fs
+.EE
+.RE
+
+.SH EXIT STATUS
+.TP
+.B 0
+The filesystem was unmounted cleanly.
+.TP
+.B 1
+A runtime error occurred: the mountpoint could not be prepared, the
+agent socket could not be contacted, or the underlying
+.BR mount (2)
+call failed.
+
+.SH NOTES
+Requires
+.B libfuse
+and a kernel with FUSE support. Tested on Linux; the default\-mountpoint
+fallback also accommodates macOS via
+.BR $TMPDIR ,
+though the binary itself is built and tested against Linux FUSE.
+
+.SH AUTHORS
+Written by Shin Sterneck <shinsterneck+ssh-agent-fs@gmail.com>.
+
+.SH REPORTING BUGS
+Report bugs at <https://github.com/shinsterneck/ssh-agent-fs/issues>.
+
+.SH COPYRIGHT
+Copyright \(co 2026 Shin Sterneck.
+.br
+License GPL\-3.0\-or\-later: GNU GPL version 3 or later
+<https://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+
+.SH SEE ALSO
+.BR ssh\-agent (1),
+.BR ssh\-add (1),
+.BR ssh_config (5),
+.BR fusermount (1),
+.BR fuse (4)

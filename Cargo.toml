@@ -1,0 +1,12 @@
+[package]
+name = "ssh-agent-fs"
+version = "1.0.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Read-only FUSE filesystem exposing SSH agent public keys as predictable files"
+
+[dependencies]
+fuser = "0.14"
+libc = "0.2"
+ssh-agent-client-rs = "~1.1"
+ssh-key = "0.6"
