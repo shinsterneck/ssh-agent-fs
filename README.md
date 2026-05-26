@@ -22,15 +22,34 @@ For each identity in the agent, a file appears in the mount directory named
 - The identity list is re-queried from the agent on demand, with a 1-second
   cache TTL.
 
-## Build & run (Linux)
+## Install
 
-Prerequisites: `rustc`/`cargo`, `libfuse-dev` (Debian/Ubuntu) or
-`fuse-devel` (RHEL/Fedora). For the convenience recipes below you'll also
-want [`just`](https://just.systems/):
+The recommended path is from crates.io:
 
 ```sh
-sudo apt install libfuse-dev pkg-config   # or your distro equivalent
-cargo install just                        # if you don't already have it
+cargo install ssh-agent-fs
+```
+
+This compiles against your system's `libfuse` and `glibc`, so it works on any
+Linux distro that has them — you'll still need the libfuse headers installed
+at compile time since `cargo install` can't fetch C dependencies:
+
+```sh
+sudo apt install libfuse-dev pkg-config       # Debian/Ubuntu
+sudo dnf install fuse-devel pkg-config        # Fedora/RHEL
+sudo pacman -S fuse2 pkgconf                  # Arch/Artix
+```
+
+If you'd rather build from a local checkout, see the next section.
+
+## Build from source (Linux)
+
+Prerequisites: `rustc`/`cargo`, plus the `libfuse-dev` / `fuse-devel` /
+`fuse2` packages listed above. For the convenience recipes below you'll
+also want [`just`](https://just.systems/):
+
+```sh
+cargo install just                            # if you don't already have it
 ```
 
 The repo ships a `justfile`; run `just --list` to see what's available:
