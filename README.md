@@ -1,6 +1,6 @@
 # ssh-agent-fs
 
-A small read-only FUSE filesystem that exposes the public keys held by your
+A read-only FUSE filesystem that exposes the public keys held by your
 running SSH agent as predictable files, so you can reference them from `~/.ssh/config` via `IdentityFile` (or from other SSH clients).
 
 ## Why?
